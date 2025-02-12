@@ -51,6 +51,8 @@ def predict_valuation(features: PropertyFeatures):
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# Run the app (uncomment below for local testing)
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))  # Render provides a PORT dynamically
+    uvicorn.run(app, host="0.0.0.0", port=port)
