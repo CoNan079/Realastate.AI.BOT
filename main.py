@@ -1,44 +1,33 @@
-from fastapi import FastAPI, HTTPException
 import pickle
 import numpy as np
-import os
+import sklearn
+from sklearn.utils import _IS_32BIT
+from sklearn.linear_model import LinearRegression
+
+# Ensure compatibility when loading the pickle file
+def load_model(filename):
+    with open(filename, "rb") as f:
+        try:
+            model = pickle.load(f)
+        except AttributeError:
+            import sklearn.ensemble._gradient_boosting
+            model = pickle.load(f)
+        return model
+
+# Load the model safely
+model = load_model("model.pkl")
+
+# Example API using FastAPI
+from fastapi import FastAPI
 
 app = FastAPI()
 
-# Define the path to the trained model file
-MODEL_PATH = "property_valuation_model.pkl"
-
-# Ensure the model exists before loading
-if not os.path.exists(MODEL_PATH):
-    raise FileNotFoundError(f"Model file not found at {MODEL_PATH}. Ensure it's uploaded to the repository.")
-
-# Load the trained model
-try:
-    with open(MODEL_PATH, "rb") as f:
-        model = pickle.load(f)
-except Exception as e:
-    raise RuntimeError(f"Error loading the model: {e}")
-
 @app.get("/")
-def home():
-    """Health check endpoint"""
-    return {"message": "Real Estate AI Bot is running successfully!"}
+def read_root():
+    return {"message": "Real Estate AI Bot is running"}
 
-@app.get("/predict")
-def predict_property_value(area: float, bedrooms: int):
-    """
-    Predict property value based on input features.
-    
-    Example request:
-    GET /predict?area=200&bedrooms=3
-    """
-    try:
-        # Ensure input is formatted correctly
-        input_data = np.array([[area, bedrooms]])
-        
-        # Predict using the loaded model
-        predicted_value = model.predict(input_data)[0]
-
-        return {"predicted_value": round(predicted_value, 2)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {e}")
+@app.post("/predict")
+def predict(features: list):
+    features_array = np.array(features).reshape(1, -1)
+    prediction = model.predict(features_array)
+    return {"prediction": prediction.tolist()}
